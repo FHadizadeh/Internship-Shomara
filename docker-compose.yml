@@ -1,0 +1,48 @@
+version: "3.9"  # optional since v1.27.0
+services:
+  elasticsearch:
+    image: docker.io/bitnami/elasticsearch:7
+    container_name: elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - cluster.name=es-docker-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - data01:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+    networks:
+      - elastic
+  backend:
+    build:
+      context: ./Backend
+    container_name: backend
+    ports:
+      - "4000:4000"
+    networks:
+      - elastic
+  frontend:
+    build:
+      context: ./Frontend
+    container_name: frontend
+    ports:
+      - "5000:5000"
+    networks:
+      - elastic
+volumes:
+  data01:
+    driver: local
+  data02:
+    driver: local
+  data03:
+    driver: local
+networks:
+  elastic:
+    driver: bridge
+

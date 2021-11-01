@@ -1,0 +1,93 @@
+{
+  "settings": {
+    "index": {
+      "analysis": {
+        "char_filter": {
+          "zero_width_spaces": {
+            "type": "mapping",
+            "mappings": [
+              "\\u200C=>\\u0020"
+              ]
+          }
+        },
+        "filter": {
+          "allah_synonym": {
+            "type": "synonym",
+            "synonyms": [
+              "لله => الله",
+              "اله => الله",
+              "ا... => الله",
+              "ا. => الله"
+              ]
+          },
+          "EL_synonym": {
+            "type": "synonym",
+            "synonyms": [
+              "خ => خیابان",
+              "ک => کوچه",
+              "ب => بلوار",
+              "پ => پلاک",
+              "م => میدان",
+              "بل => بلوار",
+              "بن => بن بست",
+              "ایت الله => ایتالله"
+              ]
+          },
+          "persian_stop": {
+            "type": "stop",
+            "stopwords":  [
+              "به", "با", "که", "از", "است", "و", "را", "این", "در",
+              "شهيد",
+              "ايتالله"
+            ]
+          }
+        },
+        "tokenizer": {
+          "my_tokenizer": {
+            "type": "pattern",
+            "pattern": ","
+          }
+        },
+        "analyzer": {
+          "EL_address_analyzer": {
+            "type": "custom",
+            "tokenizer": "standard",
+            "char_filter": [ "zero_width_spaces" ],
+            "filter": [
+              "lowercase",
+              "elision",
+              "asciifolding",
+              "decimal_digit",
+              "arabic_normalization",
+              "persian_normalization",
+              "allah_synonym",
+              "EL_synonym",
+              "persian_stop"
+            ]
+
+          }
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "address": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        },
+        "analyzer": "EL_address_analyzer"
+      },
+      "building_no": {
+        "type": "keyword"
+      },
+      "unit": {
+        "type": "text"
+      }
+    }
+  }
+}

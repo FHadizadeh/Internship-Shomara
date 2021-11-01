@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Place Details</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+      <script src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
+    <script>
+
+        function translate(text) {
+          var result = null
+          $.ajax({
+            async: false,
+            type: "POST",
+            url: "/translate",
+            data: { data: text}
+          }).done(function( o ) {
+             // do something
+             console.log("OOOOOOO");
+             result = o;
+          });
+          console.log(result);
+          return result;
+        }
+
+        var markers = [];
+        var the_loc = -1;
+        function initMap() {
+            var lat = 35.704133;
+            var lng = 51.351604;
+
+            var mapProp= {
+              center:new google.maps.LatLng(lat, lng),
+              zoom:10,
+            };
+            var map = new google.maps.Map(document.getElementById("googleMap"),mapProp);
+
+
+
+            var card = document.getElementById('pac-card');
+            var input = document.getElementById('pac-input');
+            var types = document.getElementById('type-selector');
+            var strictBounds = document.getElementById('strict-bounds-selector');
+
+            map.controls[google.maps.ControlPosition.TOP_RIGHT].push(card);
+
+            var autocomplete = new google.maps.places.Autocomplete(input);
+
+            // Bind the map's bounds (viewport) property to the autocomplete object,
+            // so that the autocomplete requests use the current map bounds for the
+            // bounds option in the request.
+            autocomplete.bindTo('bounds', map);
+
+            // Set the data fields to return when the user selects a place.
+            autocomplete.setFields(
+                ['address_components', 'geometry', 'icon', 'name']);
+
+            var infowindow = new google.maps.InfoWindow();
+            infowindow.setOptions({maxWidth:250});
+            var marker = new google.maps.Marker({
+              map: map,
+              anchorPoint: new google.maps.Point(0, -29)
+            });
+
+            autocomplete.addListener('place_changed', function() {
+              var place = autocomplete.getPlace();
+              console.log(place);
+              geocodeaddress(map, place.name);
+
+            });
+
+            // Sets a listener on a radio button to change the filter type on Places
+            // Autocomplete.
+            function setupClickListener(id, types) {
+              var radioButton = document.getElementById(id);
+              radioButton.addEventListener('click', function() {
+                autocomplete.setTypes(types);
+              });
+            }
+
+            setupClickListener('changetype-all', []);
+            setupClickListener('changetype-address', ['address']);
+            setupClickListener('changetype-establishment', ['establishment']);
+            setupClickListener('changetype-geocode', ['geocode']);
+
+            document.getElementById('use-strict-bounds')
+                .addEventListener('click', function() {
+                  console.log('Checkbox clicked! New state=' + this.checked);
+                  autocomplete.setOptions({strictBounds: this.checked});
+            });
+
+            google.maps.event.addListener(map, 'click', function(event) {
+                console.log("event", event);
+                get_name(event.placeId, map);
+            });
+
+        }
+
+        function geocodeaddress(map, address) {
+            var geocoder = new google.maps.Geocoder;
+            geocoder.geocode({'address': address, 'language': 'fa'}, function(results, status) {
+              if (status === 'OK') {
+                if (results[0]) {
+                  var latlng = results[0].geometry.location
+                  get_name(results[0].place_id, map);
+                } else {
+                  window.alert('No results found');
+                }
+              } else {
+                window.alert('Geocoder failed due to: ' + status);
+              }
+            });
+        }
+
+        function clearMarkers() {
+            for (var i = 0; i < markers.length; i++) {
+              markers[i].setMap(null);
+            }
+            markers = [];
+        }
+
+        function get_name(placeId, map) {
+            clearMarkers();
+            if (infowindow){
+                infowindow.close();
+                marker.setVisible(false);
+            }
+            var infowindow = new google.maps.InfoWindow;
+            infowindow.setOptions({maxWidth:250});
+
+            var request = {
+              placeId: placeId,
+              'language': 'en',
+              fields: ['name', 'formatted_address', 'place_id', 'geometry']
+            };
+
+            {#var infowindow = new google.maps.InfoWindow();#}
+            var service = new google.maps.places.PlacesService(map);
+
+            service.getDetails(request, function(place, status) {
+              if (status === google.maps.places.PlacesServiceStatus.OK) {
+                  var latlng = place.geometry.location;
+                  var result_name = translate(place.name);
+                  var result_address = translate(place.formatted_address);
+                  console.log("hooooo!");
+                  console.log(result_address);
+                  infowindow.setContent('<div><strong>' + result_name + '</strong><br><p>' +
+                    result_address + '</p></div>');
+                  var marker = new google.maps.Marker({
+                    position: latlng,
+                    map: map
+                  });
+                  infowindow.open(map, marker);
+                  map.setCenter(latlng);
+                  map.setZoom(17);  // Why 17? Because it looks good.
+                  markers.push(marker);
+              }
+            });
+        }
+
+    </script>
+  </head>
+  <body>
+    <div class="col-md-8">
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+            <div class="content-section">
+                    <div style="width: 100%; height: 500px; margin-top: 20px; margin-bottom: 20px" id="googleMap"></div>
+                    <div class="pac-card" id="pac-card">
+                      <div>
+                        <div id="title">
+                          Autocomplete search
+                        </div>
+                        <div id="type-selector" class="pac-controls">
+                          <input type="radio" name="type" id="changetype-all" checked="checked">
+                          <label for="changetype-all">All</label>
+
+                          <input type="radio" name="type" id="changetype-establishment">
+                          <label for="changetype-establishment">Establishments</label>
+
+                          <input type="radio" name="type" id="changetype-address">
+                          <label for="changetype-address">Addresses</label>
+
+                          <input type="radio" name="type" id="changetype-geocode">
+                          <label for="changetype-geocode">Geocodes</label>
+                        </div>
+                        <div id="strict-bounds-selector" class="pac-controls">
+                          <input type="checkbox" id="use-strict-bounds" value="">
+                          <label for="use-strict-bounds">Strict Bounds</label>
+                        </div>
+                      </div>
+                      <div id="pac-container">
+                        <input id="pac-input" type="text"
+                            placeholder="Enter a location">
+                      </div>
+                    </div>
+            </div>
+        </div>
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAKefvkV0v696yGIlPgh2fzLw3ohN982U0&libraries=places&language=fa&callback=initMap">
+    </script>
+  </body>
+</html>
