@@ -7,6 +7,7 @@ try:
     from elasticsearch import helpers, Elasticsearch
     import csv
     import time
+    from normalize_address import normalize
 
     warnings.filterwarnings('ignore')
 except Exception as e:
@@ -19,7 +20,7 @@ api = Api(app)
 
 NODE_NAME = 'address_index'
 es = Elasticsearch([{'host': 'elasticsearch', 'port': 9200}])
-
+# change the host to 'localhost' to run the backend locally
 
 # ------------------------------------------------------------------------------------------------------------
 
@@ -51,6 +52,21 @@ def create_index():
 """
 
 
+# def normalize(address):
+#     body = {
+#         "analyzer": "EL_address_analyzer",
+#         "text": address
+#     }
+#
+#     response = es.indices.analyze(index=NODE_NAME, body=body)
+#     res = ''
+#     for token in response['tokens']:
+#         res += token['token']
+#         res += ' '
+#
+#     return res
+
+
 class Controller(Resource):
     def __init__(self):
         self.query = parser.parse_args().get("query", None)
@@ -78,6 +94,10 @@ class Controller(Resource):
 
     def get(self):
         res = es.search(index=NODE_NAME, body=self.baseQuery)
+        addresses = res['hits']['hits']
+        res = {'addresses': [normalize(parser.parse_args().get("query", None))]}
+        for address in addresses:
+            res['addresses'].append(normalize(address['_source']['address']))
         print(res)
         return res
 

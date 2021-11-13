@@ -79,6 +79,10 @@ body{
   background: #efefef;
 }
 
+.autocom-box li.selected {
+  background: #efefef;
+}
+
 .search-input .icon{
   position: absolute;
   right: 0px;
@@ -129,12 +133,35 @@ const suggBox = searchWrapper.querySelector(".autocom-box");
 const icon = searchWrapper.querySelector(".icon");
 let linkTag = searchWrapper.querySelector("a");
 let webLink;
+let ul = searchWrapper
+let nodes = suggBox.querySelectorAll("li");
+let selected = 0
 
 // if user press any key and release
 inputBox.onkeyup = (e)=>{
     let userData = e.target.value; //user enetered data
     let emptyArray = [];
-    if(userData){
+    let flag = true;
+    if (e.keyCode === 38) { // up
+        select_key(nodes[selected - 1]);
+        flag = false;
+    }
+    else if (e.keyCode === 40) { // down
+        select_key(nodes[selected + 1]);
+        flag = false;
+    }
+    else if (e.keyCode === 13) { // When ENTER is pressed
+      e.preventDefault();
+      // For each li,
+      $('li').each(function() {
+        // Check it if has class "selected"
+        if($(this).hasClass('selected')) {
+          // If it does, do something with it!
+          select(this);
+        };
+      });
+    }
+    else if(userData){
         icon.onclick = ()=>{
             webLink = `https://www.google.com/search?q=${userData}`;
             linkTag.setAttribute("href", webLink);
@@ -147,24 +174,30 @@ inputBox.onkeyup = (e)=>{
             data:{'data': e.target.value},
             success: function(html)
             {
-                var data = html.hits.hits
+<!--                var data = html.hits.hits-->
+                var data = html.addresses
                 var _ = []
 
-<!--                console.log(html.hits.hits)-->
+<!--                console.log(data)-->
 
                 $.each(data, (index, value)=>{
-                    _.push(value._source.address)
+<!--                    _.push(value._source.address)-->
+                    _.push(value)
+
                 });
 
                 emptyArray = _
 
                 emptyArray = emptyArray.map((data)=>{
                     // passing return data inside li tag
-                    return data = `<li>${data}</li>`;
+                    return data = `<li class="li">${data}</li>`;
                 });
                 searchWrapper.classList.add("active"); //show autocomplete box
+                nodes = suggBox.querySelectorAll("li");
                 showSuggestions(emptyArray);
                 let allList = suggBox.querySelectorAll("li");
+                nodes = suggBox.querySelectorAll("li");
+                allList[0].classList.add('selected');
                 for (let i = 0; i < allList.length; i++) {
                     //adding onclick attribute in all li tag
                     allList[i].setAttribute("onclick", "select(this)");
@@ -175,6 +208,33 @@ inputBox.onkeyup = (e)=>{
     }else{
         searchWrapper.classList.remove("active"); //hide autocomplete box
     }
+
+    if (flag) {
+      selected = 0
+    }
+}
+
+function select_key(el) {
+    var s = [].indexOf.call(nodes, el);
+    if (s === -1) return;
+
+    selected = s;
+
+    if (document.querySelector('li.selected'))
+      document.querySelector('li.selected').classList.remove('selected');
+    el.classList.add('selected');
+
+
+    /* ******** Show item ************* */
+	if(nodes[selected].offsetTop - nodes[0].offsetTop < nodes[selected].parentNode.scrollTop) {
+		// Hidden on top, move scroll to show item
+		// Just to the top of item
+		nodes[selected].parentNode.scrollTop = nodes[selected].offsetTop - nodes[0].offsetTop;
+	} else if(nodes[selected].offsetTop > (nodes[selected].parentNode.scrollTop + nodes[selected].parentNode.clientHeight) - nodes[selected].clientHeight) {
+		// Hidden on bottom, move scroll to top of item + item height
+		nodes[selected].parentNode.scrollTop = nodes[selected].offsetTop - (nodes[selected].parentNode.clientHeight - nodes[selected].clientHeight);
+	}
+    /* ******** Show item ************* */
 }
 
 function select(element){

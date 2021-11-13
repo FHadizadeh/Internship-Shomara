@@ -15,7 +15,8 @@ def pipe():
     data = request.form.get("data")
     payload = {}
     headers = {}
-    url = " http://backend:4000/autocomplete?query=" + str(data)
+    # change the url to "http://127.0.0.1:4000/autocomplete?query=" to run the backend locally
+    url = "http://backend:4000/autocomplete?query=" + str(data)
     response = requests.request("GET", url, headers=headers, data=payload)
     print(response.json())
     return response.json()
